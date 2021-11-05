@@ -1,42 +1,39 @@
-from forta_agent import Finding, FindingType, FindingSeverity
+import json
+import forta_agent
+from web3 import Web3
+from src.constants import GET_FALLBACK_ORACLE, LendingPoolAddressesProvider
+from forta_agent import Finding, FindingType, FindingSeverity, get_json_rpc_url
 
-MEDIUM_GAS_THRESHOLD = 1000000
-HIGH_GAS_THRESHOLD = 3000000
-CRITICAL_GAS_THRESHOLD = 7000000
+MARKET = 'MAIN'  # available options: MAIN, AMM
+NETWORK = 'MAINNET'  # Specify your network here
+LendingPoolAddressesProvider_address = LendingPoolAddressesProvider.get(MARKET + '_' + NETWORK)
 
-findings_count = 0
+web3 = Web3(Web3.HTTPProvider(get_json_rpc_url()))
+with open('./src/LendingPoolAddressesProvider.json', 'r') as abi_file:
+    abi = json.load(abi_file)
 
 
-def handle_transaction(transaction_event):
+def handle_transaction(transaction_event: forta_agent.transaction_event.TransactionEvent):
     findings = []
-    gas_used = int(transaction_event.gas_used)
 
-    # limiting this agent to emit only 5 findings so that the alert feed is not spammed
-    global findings_count
-    if findings_count >= 5:
-        return findings
+    # get LendingPoolAddressesProvider contract address in the specified network
+    contract = web3.eth.contract(address=Web3.toChecksumAddress(LendingPoolAddressesProvider_address), abi=abi)
+    # get actual PriceOracle contract address from the LendingPoolAddressesProvider using getPriceOracle ABI
+    price_oracle_address = contract.functions.getPriceOracle().call()
+    # filter transaction events where GetFallbackOracle was called with PriceOracle address
+    oracle_calls = transaction_event.filter_function(GET_FALLBACK_ORACLE, price_oracle_address)
 
-    if gas_used < MEDIUM_GAS_THRESHOLD:
-        return findings
+    if oracle_calls:
+        findings.append(Finding({
+            'name': 'GetFallbackOracle() Function',
+            'description': f'getFallbackOracle() function was called from {price_oracle_address}',
+            'alert_id': "AAVE-SFO",
+            'type': FindingType.Suspicious,
+            'severity': FindingSeverity.Medium,
+            'metadata': {
+                'tx_hash': transaction_event.hash,
+                'price_oracle': price_oracle_address
+            }
+        }))
 
-    findings.append(Finding({
-        'name': 'High Gas Used',
-        'description': f'Gas Used: {gas_used}',
-        'alert_id': 'FORTA-1',
-        'type': FindingType.Suspicious,
-        'severity': get_severity(gas_used),
-        'metadata': {
-            'gas_used': gas_used
-        }
-    }))
-    findings_count += 1
     return findings
-
-
-def get_severity(gas_used):
-    if gas_used > CRITICAL_GAS_THRESHOLD:
-        return FindingSeverity.Critical
-    elif gas_used > HIGH_GAS_THRESHOLD:
-        return FindingSeverity.High
-    else:
-        return FindingSeverity.Medium

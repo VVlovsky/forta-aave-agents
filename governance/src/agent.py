@@ -1,42 +1,31 @@
+import forta_agent
 from forta_agent import Finding, FindingType, FindingSeverity
-
-MEDIUM_GAS_THRESHOLD = 1000000
-HIGH_GAS_THRESHOLD = 3000000
-CRITICAL_GAS_THRESHOLD = 7000000
-
-findings_count = 0
+from src.constants import AAVE_GOVERNANCE_V2_MAINNET, GOVERNANCE_PROPOSAL_EXECUTED_ABI
 
 
-def handle_transaction(transaction_event):
+def handle_transaction(transaction_event: forta_agent.transaction_event.TransactionEvent):
     findings = []
-    gas_used = int(transaction_event.gas_used)
 
-    # limiting this agent to emit only 5 findings so that the alert feed is not spammed
-    global findings_count
-    if findings_count >= 5:
-        return findings
+    # filter transaction events where GOVERNANCE_PROPOSAL_EXECUTED event is in the log with AAVE_GOVERNANCE_V2 address
+    events = transaction_event.filter_log(GOVERNANCE_PROPOSAL_EXECUTED_ABI,
+                                          AAVE_GOVERNANCE_V2_MAINNET)
+    for event in events:
+        id = event.get('args', {}).get('id', None)  # attempt to get proposal id
+        id = id if id else 'UNKNOWN ID'  # set 'UNKNOWN ID' if failed
+        initiator_execution = event.get('args', {}).get('initiatorExecution', None)  # attempt to get initiator
+        initiator_execution = initiator_execution if initiator_execution else 'UNKNOWN INITIATOR'
+        # set 'UNKNOWN INITIATOR' if failed
 
-    if gas_used < MEDIUM_GAS_THRESHOLD:
-        return findings
+        findings.append(Finding({
+            'name': 'Aave Governance Proposal is EXECUTED',
+            'description': f'Aave governance proposal with id {id} is executed by {initiator_execution}',
+            'alert_id': 'AAVE-GOV-EXEC',
+            'type': FindingType.Info,
+            'severity': FindingSeverity.Info,
+            'metadata': {
+                'id': id,
+                'initiator_execution': initiator_execution
+            }
+        }))
 
-    findings.append(Finding({
-        'name': 'High Gas Used',
-        'description': f'Gas Used: {gas_used}',
-        'alert_id': 'FORTA-1',
-        'type': FindingType.Suspicious,
-        'severity': get_severity(gas_used),
-        'metadata': {
-            'gas_used': gas_used
-        }
-    }))
-    findings_count += 1
     return findings
-
-
-def get_severity(gas_used):
-    if gas_used > CRITICAL_GAS_THRESHOLD:
-        return FindingSeverity.Critical
-    elif gas_used > HIGH_GAS_THRESHOLD:
-        return FindingSeverity.High
-    else:
-        return FindingSeverity.Medium

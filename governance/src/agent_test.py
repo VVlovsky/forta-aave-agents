@@ -1,28 +1,56 @@
-from forta_agent import FindingSeverity, FindingType, create_transaction_event
+import json
+import eth_abi
+from eth_utils import event_abi_to_log_topic
+from forta_agent import create_transaction_event
 from agent import handle_transaction
+from src.constants import GOVERNANCE_PROPOSAL_EXECUTED_ABI
 
 
-class TestHighGasAgent:
-    def test_returns_empty_findings_if_gas_below_threshold(self):
-        tx_event = create_transaction_event(
-            {'receipt': {'gas_used': '1'}})
+class TestAaveGovernanceAgent:
 
+    def test_returns_empty_findings_if_address_is_wrong(self):
+        # filler contains random data, it is necessary to call filter_log() function
+        filler = eth_abi.encode_abi(["address"], ["0xEC568fffba86c094cf06b22134B23074DFE2252c"])
+        topics = [event_abi_to_log_topic(json.loads(GOVERNANCE_PROPOSAL_EXECUTED_ABI)), filler]
+        tx_event = create_transaction_event({
+            'receipt': {
+                'logs': [
+                    {'topics': topics,
+                     'data': filler,
+                     'address': "0x1010101010101010101010101010101010101010"}, ]},
+
+        })
         findings = handle_transaction(tx_event)
-
         assert len(findings) == 0
 
-    def test_returns_finding_if_gas_above_threshold(self):
+    def test_returns_empty_findings_if_hash_is_wrong(self):
+        # filler contains random data, it is necessary to call filter_log() function
+        filler = eth_abi.encode_abi(["address"], ["0xEC568fffba86c094cf06b22134B23074DFE2252c"])
         tx_event = create_transaction_event({
-            'receipt': {'gas_used': '1000001'}
+            'receipt': {
+                'logs': [
+                    {'topics': ["0x1010101010101010101010101010101010101010"],
+                     'data': filler,
+                     'address': "0xEC568fffba86c094cf06b22134B23074DFE2252c"}, ]},
+
         })
-
         findings = handle_transaction(tx_event)
+        assert len(findings) == 0
 
-        assert len(findings) == 1
-        finding = findings[0]
-        assert finding.name == "High Gas Used"
-        assert finding.description == f'Gas Used: {tx_event.gas_used}'
-        assert finding.alert_id == 'FORTA-1'
-        assert finding.type == FindingType.Suspicious
-        assert finding.severity == FindingSeverity.Medium
-        assert finding.metadata['gas_used'] == tx_event.gas_used
+    def test_returns_findings_if_everything_is_correct(self):
+        # filler contains random data, it is necessary to call filter_log() function
+        filler = eth_abi.encode_abi(["address"], ["0xEC568fffba86c094cf06b22134B23074DFE2252c"])
+        topics = [event_abi_to_log_topic(json.loads(GOVERNANCE_PROPOSAL_EXECUTED_ABI)), filler]
+        tx_event = create_transaction_event({
+            'receipt': {
+                'logs': [
+                    {'topics': topics,
+                     'data': filler,
+                     'address': "0xEC568fffba86c094cf06b22134B23074DFE2252c"}, ]},
+
+        })
+        findings = handle_transaction(tx_event)
+        assert len(findings) != 0
+
+
+TestAaveGovernanceAgent().test_returns_findings_if_everything_is_correct()
