@@ -33,12 +33,11 @@ class FunctionsMock:
 
 
 class TestExchangeRateAgent:
-    def __init__(self):
-        self.block_event = create_block_event({
-            'block': {
-                'number': 0
-            }
-        })
+    block_event = create_block_event({
+        'block': {
+            'number': 0
+        }
+    })
 
     def test_returns_zero_returns_finding_if_ex_rate_does_not_drop(self):
         w3 = Web3Mock(8, 10)

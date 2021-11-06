@@ -9,7 +9,7 @@ get_assets_price_abi = json.loads(GET_ASSETS_PRICE_ABI)
 TOKEN_1 = 'USDC'  # Specify first token name
 TOKEN_2 = 'DAI'  # Specify second token name
 
-MARKET = 'AMM'  # available options: MAIN, AMM
+MARKET = 'MAIN'  # available options: MAIN, AMM
 NETWORK = 'MAINNET'  # There is only mainnet available at this moment
 LendingPoolAddressesProvider_address = LendingPoolAddressesProvider.get(MARKET + '_' + NETWORK)
 
