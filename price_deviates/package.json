@@ -1,7 +1,7 @@
 {
-  "name": "forta-agent-starter",
+  "name": "aave-price-deviates-agent",
   "version": "0.0.1",
-  "description": "Forta Agent Python starter project",
+  "description": "This agent provides alert if getFallbackOracle() returns a price that deviates more than 10% from last price delivered by getAssetPrice()",
   "scripts": {
     "postinstall": "python3 -m pip install -r requirements_dev.txt",
     "start": "npm run start:dev",
