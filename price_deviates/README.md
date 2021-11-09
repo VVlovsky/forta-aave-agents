@@ -51,8 +51,8 @@ Describe each of the type of alerts fired by this agent
         - `FindingSeverity.Critical` if 30% ≤ RSD
     - Type is always set to `"Suspicious"`
     - Metadata:
-        - `price_oracle_price` - price which returned price oracle
-        - `fallback_oracle_price` - price which returned fallback oracle
+        - `price_oracle_price` - price which was returned by the price oracle
+        - `fallback_oracle_price` - price which was returned by the fallback oracle
         - `relative_standard_deviation` - counted RSD
         - `token_symbol` - token for which price deviates
         - `actual_price_oracle_address` - price oracle address
