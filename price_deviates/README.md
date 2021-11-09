@@ -43,7 +43,7 @@ NETWORK = 'MAINNET'  # There is only mainnet available at this moment
 
 Describe each of the type of alerts fired by this agent
 
-- AAVE-FL
+- AAVE-OPD
     - Fired when relative standard deviation ≥ 10%
     - Severity depends on the relative standard deviation:
         - `FindingSeverity.Medium` if 10% ≤ RSD < 20%
